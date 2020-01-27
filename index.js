@@ -22,6 +22,7 @@
 const { createLogger, format, transports } = require('winston');
 const chokidar = require('chokidar');
 const fs = require("fs");
+const mqtt = require("mqtt");
 const config = require('./config.js').parse();
 
 // Initate the logger
@@ -43,7 +44,7 @@ mqttClient.on('connect', function () {
 });
 
 // Start watching the recordings folder
-const watcher = chokidar.watch(config.unifi.recordings, {
+const watcher = chokidar.watch(config.unifivideo.recordings, {
   // TODO: ignore jpg and mkv files
   ignored: /(^|[\/\\])\../, // ignore dotfiles
   persistent: true

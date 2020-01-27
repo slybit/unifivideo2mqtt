@@ -6,6 +6,7 @@
   "dependencies": {
     "chokidar": "^3.3.1",
     "js-yaml": "^3.13.1",
+    "mqtt": "^3.0.0",
     "winston": "^3.2.1"
   },
   "devDependencies": {},
