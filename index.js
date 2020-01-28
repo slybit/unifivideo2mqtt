@@ -19,6 +19,7 @@
 }
 */
 
+const Path = require('path');
 const { createLogger, format, transports } = require('winston');
 const chokidar = require('chokidar');
 const fs = require("fs");
@@ -45,8 +46,8 @@ mqttClient.on('connect', function () {
 
 // Start watching the recordings folder
 const watcher = chokidar.watch(config.unifivideo.recordings, {
-  // TODO: ignore jpg and mkv files
-  ignored: /(^|[\/\\])\../, // ignore dotfiles
+  // ignore all but json files
+  ignored: /^.*\.(?!json$)[^.]+$/,
   persistent: true
 });
 
@@ -92,6 +93,22 @@ const handleNewFile = function(path) {
 	  var content = fs.readFileSync(path);
 	  var jsonContent = JSON.parse(content);
     console.log(JSON.stringify(jsonContent));
+    copySnapshot(path);
     mqttClient.publish(config.mqtt.topicPrefix + "/detection", JSON.stringify(jsonContent), {'retain' : false});
   }
+}
+
+// path contains the full json file path
+const copySnapshot = function(path) {
+  // the jpg file base name
+  let snapshot = Path.basename(path, ".json") + "_full.jpg";
+  // source path
+  let sourcepath = Path.join(Path.dirname(path), snapshot);
+  // target path
+  let targetpath = Path.join("/data/unifi/telegram", snapshot);
+  // copy the file
+  fs.copyFileSync(sourcepath, targetpath);
+  fs.chownSync(targetpath, 1000, 1000); 
+	  
+
 }
