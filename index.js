@@ -25,6 +25,7 @@ const chokidar = require('chokidar');
 const fs = require("fs");
 const mqtt = require("mqtt");
 const config = require('./config.js').parse();
+const Tail = require('tail').Tail;
 
 // Initate the logger
 const logger = createLogger({
@@ -44,6 +45,25 @@ mqttClient.on('connect', function () {
     logger.info('MQTT connected');
 });
 
+
+// -----------------------------------  MOTION LOG FILE  ---------------------------------------
+
+// Initate the Tail watcher for the log file
+const tail = new Tail("/var/log/unifi-video/motion.log");
+
+tail.on("line", function (data) {
+    logger.info(data);
+});
+
+tail.on("error", function (error) {
+    logger.error(error);
+});
+
+
+
+
+
+// -----------------------------------  RECORDINGS FOLDER  ---------------------------------------
 // Start watching the recordings folder
 const watcher = chokidar.watch(config.unifivideo.recordings, {
     // ignore all but json files
