@@ -28,49 +28,49 @@ const config = require('./config.js').parse();
 
 // Initate the logger
 const logger = createLogger({
-  level: config.loglevel,
-  format: format.combine(
-    format.colorize(),
-    format.splat(),
-    format.simple(),
-  ),
-  transports: [new transports.Console()]
+    level: config.loglevel,
+    format: format.combine(
+        format.colorize(),
+        format.splat(),
+        format.simple(),
+    ),
+    transports: [new transports.Console()]
 });
 
 
 // Establish the MQTT client
 const mqttClient = mqtt.connect(config.mqtt.url, config.mqtt.options);
 mqttClient.on('connect', function () {
-  logger.info('MQTT connected');
+    logger.info('MQTT connected');
 });
 
 // Start watching the recordings folder
 const watcher = chokidar.watch(config.unifivideo.recordings, {
-  // ignore all but json files
-  ignored: /^.*\.(?!json$)[^.]+$/,
-  persistent: true
+    // ignore all but json files
+    ignored: /^.*\.(?!json$)[^.]+$/,
+    persistent: true
 });
 
 // First watch only error or ready events
 watcher
-  .on('error', error => logger.error("Watcher error: %s", error))
-  .on('ready', () => {
-    logger.info("Initial scan complete. Ready for changes");
-    proceed();
-  });
-  //.on('addDir', path => log(`Directory ${path} has been added`))
-  //.on('unlinkDir', path => log(`Directory ${path} has been removed`))
-  //.on('raw', (event, path, details) => { // internal
-  //  log('Raw event info:', event, path, details);
-  //});
+    .on('error', error => logger.error("Watcher error: %s", error))
+    .on('ready', () => {
+        logger.info("Initial scan complete. Ready for changes");
+        proceed();
+    });
+//.on('addDir', path => log(`Directory ${path} has been added`))
+//.on('unlinkDir', path => log(`Directory ${path} has been removed`))
+//.on('raw', (event, path, details) => { // internal
+//  log('Raw event info:', event, path, details);
+//});
 
 
 
 // Add event listeners.
 //watcher
-  //.on('add', path => handleNewFile(path))
-  //.on('change', path => log(`File ${path} has been changed`))
-  //.on('unlink', path => log(`File ${path} has been removed`));
+//.on('add', path => handleNewFile(path))
+//.on('change', path => log(`File ${path} has been changed`))
+//.on('unlink', path => log(`File ${path} has been removed`));
 
 
 // 'add', 'addDir' and 'change' events also receive stat() results as second
@@ -82,33 +82,36 @@ watcher
 
 // Called when the initial scan is done.
 // Add a watcher for the file 'add' event
-const proceed = function() {
-	watcher.on('add', path => handleNewFile(path));
+const proceed = function () {
+    watcher.on('add', path => handleNewFile(path));
 }
 
 // Called by the watcher when a new file is created
-const handleNewFile = function(path) {
-  logger.info("File %s has been added", path);
-  if (path.endsWith(".json")) {
-	  var content = fs.readFileSync(path);
-	  var jsonContent = JSON.parse(content);
-    console.log(JSON.stringify(jsonContent));
-    copySnapshot(path);
-    mqttClient.publish(config.mqtt.topicPrefix + "/detection", JSON.stringify(jsonContent), {'retain' : false});
-  }
+const handleNewFile = function (path) {
+    logger.info("File %s has been added", path);
+    if (path.endsWith(".json")) {
+        let content = fs.readFileSync(path);
+        let jsonContent = JSON.parse(content);
+        console.log(JSON.stringify(jsonContent));
+        copySnapshot(path, (snapshot) => {
+            jsonContent.snapshot = snapshot;
+            mqttClient.publish(config.mqtt.topicPrefix + "/detection", JSON.stringify(jsonContent), { 'retain': false });
+        });
+    }
 }
 
 // path contains the full json file path
-const copySnapshot = function(path) {
-  // the jpg file base name
-  let snapshot = Path.basename(path, ".json") + "_full.jpg";
-  // source path
-  let sourcepath = Path.join(Path.dirname(path), snapshot);
-  // target path
-  let targetpath = Path.join("/data/unifi/telegram", snapshot);
-  // copy the file
-  fs.copyFileSync(sourcepath, targetpath);
-  fs.chownSync(targetpath, 1000, 1000); 
-	  
-
+const copySnapshot = function (path, callback) {
+    // the jpg file base name
+    let snapshot = Path.basename(path, ".json") + "_full.jpg";
+    // source path
+    let sourcepath = Path.join(Path.dirname(path), snapshot);
+    // target path
+    let targetpath = Path.join("/data/unifi/telegram", snapshot);
+    // copy the file
+    fs.copyFile(sourcepath, targetpath, () => {
+        fs.chown(targetpath, 1000, 1000, () => {
+            callback(targetpath);
+        });
+    });
 }
