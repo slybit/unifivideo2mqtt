@@ -53,7 +53,13 @@ const tail = new Tail("/var/log/unifi-video/motion.log");
 
 tail.on("line", function (data) {
     logger.info(data);
+    if (data.includes("MotionEvent type:start")) {
+        mqttClient.publish(config.mqtt.topicPrefix + "/motion", "1", { 'retain': true });
+    } else if (data.includes("MotionEvent type:stop")) {
+        mqttClient.publish(config.mqtt.topicPrefix + "/motion", "0", { 'retain': true });
+    }
 });
+
 
 tail.on("error", function (error) {
     logger.error(error);
