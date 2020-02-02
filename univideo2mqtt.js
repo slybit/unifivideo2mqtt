@@ -26,6 +26,8 @@ const fs = require("fs");
 const mqtt = require("mqtt");
 const config = require('./config.js').parse();
 const Tail = require('tail').Tail;
+const findRemoveSync = require('find-remove');
+
 
 // Initate the logger
 const logger = createLogger({
@@ -121,7 +123,7 @@ const handleNewFile = function (path) {
         console.log(JSON.stringify(jsonContent));
         copySnapshot(path, (snapshot) => {
             jsonContent.snapshot = snapshot;
-            mqttClient.publish(config.mqtt.topicPrefix + "/detection", JSON.stringify(jsonContent), { 'retain': false });
+            mqttClient.publish(config.mqtt.topicPrefix + "/recording", JSON.stringify(jsonContent), { 'retain': false });
         });
     }
 }
@@ -141,3 +143,8 @@ const copySnapshot = function (path, callback) {
         });
     });
 }
+
+// Clean up old files once a day
+var result = findRemoveSync("/data/unifi/telegram", {age: {seconds: 3600}, files: "*.*"});
+//setInterval(findRemoveSync.bind("/data/unifi/telegram", {age: {seconds: 3600}}), 360000);
+console.log(result);
