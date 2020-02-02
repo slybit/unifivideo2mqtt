@@ -145,4 +145,4 @@ const copySnapshot = function (path, callback) {
 }
 
 // Clean up old files once a day
-setInterval(findRemoveSync("/data/unifi/telegram", {age: {seconds: 604800}, files: "*.*"}), 86400);
+setInterval(() => findRemoveSync("/data/unifi/telegram", {age: {seconds: 604800}, files: "*.*"}), 86400);
