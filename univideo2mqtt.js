@@ -124,6 +124,7 @@ const handleNewFile = function (path) {
         copySnapshot(path, (snapshot) => {
             jsonContent.snapshot = snapshot;
             mqttClient.publish(config.mqtt.topicPrefix + "/recording", JSON.stringify(jsonContent), { 'retain': false });
+            logger.info("published MQTT message to [%s]: %s", config.mqtt.topicPrefix + "/recording", JSON.stringify(jsonContent));
         });
     }
 }
